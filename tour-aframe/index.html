@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tour Virtuale Scolastico - A-Frame</title>
+    <!-- Caricamento della libreria di A-Frame -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <!-- Precaricamento delle immagini a 360 gradi -->
+      <a-assets>
+        <img id="img-entrata" src="img/Entrata_plesso_nuovo.jpg">
+        <img id="img-lab" src="img/Piano_terra_lato_lab_chimica.jpg">
+        <img id="img-centrale" src="img/PianoTerra_centrale.jpg">
+      </a-assets>
+
+      <!-- Componente di navigazione -->
+      <script>
+        AFRAME.registerComponent('navigatore', {
+          schema: { 
+            stanza: { type: 'string' },
+            mostra: { type: 'string' },
+            nascondi: { type: 'string' }
+          },
+          init: function () {
+            const data = this.data;
+            const skyEl = document.querySelector('#sfondo-principale');
+            
+            this.el.addEventListener('click', () => {
+              console.log("Cambio stanza verso: " + data.stanza);
+
+              // 1. Cambia l'immagine di sfondo
+              skyEl.setAttribute('src', '#' + data.stanza);
+
+              // 2. Nasconde gli hotspot indicati
+              if (data.nascondi) {
+                data.nascondi.split(',').forEach(id => {
+                  const el = document.querySelector('#' + id.trim());
+                  if (el) el.setAttribute('visible', 'false');
+                });
+              }
+
+              // 3. Mostra gli hotspot indicati
+              if (data.mostra) {
+                data.mostra.split(',').forEach(id => {
+                  const el = document.querySelector('#' + id.trim());
+                  if (el) el.setAttribute('visible', 'true');
+                });
+              }
+            });
+          }
+        });
+      </script>
+
+      <!-- Sfondo sferico iniziale -->
+      <a-sky id="sfondo-principale" src="#img-entrata" rotation="0 -90 0"></a-sky>
+
+      <!-- Telecamera e cursore puntato sugli elementi con navigatore -->
+      <a-camera>
+        <a-cursor 
+          color="#FF0000" 
+          fuse="false"
+          raycaster="objects: [navigatore]">
+        </a-cursor>
+      </a-camera>
+
+      <!-- HOTSPOT DALL'ENTRATA -->
+      <!-- 1. Laboratorio di Chimica (a destra) -->
+      <a-circle id="hotspot-lab" position="4 1.5 -3" radius="0.5" color="#EF2D5E" opacity="0.8"
+                navigatore="stanza: img-lab; nascondi: hotspot-lab, hotspot-centrale; mostra: hotspot-entrata"
+                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+        <a-text value="Lab Chimica" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+      </a-circle>
+
+      <!-- 2. Piano Terra Centrale (a sinistra) -->
+      <a-circle id="hotspot-centrale" position="-4 1.5 -3" radius="0.5" color="#2D88EF" opacity="0.8"
+                navigatore="stanza: img-centrale; nascondi: hotspot-lab, hotspot-centrale; mostra: hotspot-entrata"
+                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+        <a-text value="Piano Terra Centrale" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+      </a-circle>
+
+      <!-- HOTSPOT PER TORNARE ALL'ENTRATA (inizialmente nascosto) -->
+      <a-circle id="hotspot-entrata" position="0 1.5 -3" radius="0.5" color="#2ECC71" opacity="0.8" visible="false"
+                navigatore="stanza: img-entrata; nascondi: hotspot-entrata; mostra: hotspot-lab, hotspot-centrale"
+                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+        <a-text value="Torna all'Entrata" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+      </a-circle>
+
+    </a-scene>
+  </body>
+</html>
