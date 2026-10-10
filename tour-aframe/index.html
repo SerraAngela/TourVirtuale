@@ -2,90 +2,380 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Tour Virtuale Scolastico - A-Frame</title>
-    <!-- Caricamento della libreria di A-Frame -->
+    <title>Tour Virtuale Iti A Monaco</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   </head>
+  
   <body>
     <a-scene>
-      <!-- Precaricamento delle immagini a 360 gradi -->
+      <!-- Precaricamento immagini -->
       <a-assets>
-        <img id="img-entrata" src="img/Entrata_plesso_nuovo.jpg">
-        <img id="img-lab" src="img/Piano_terra_lato_lab_chimica.jpg">
-        <img id="img-centrale" src="img/PianoTerra_centrale.jpg">
+        <img id="img-ingresso" src="img/N_ingresso.jpg">
+        <img id="img-ingresso1" src="img/N_ingresso_1.jpg">
+		<img id="img-ingresso2" src="img/N_ingresso_2.jpg">
+		<img id="img-ingresso3" src="img/N_ingresso_3.jpg">
+        <img id="img-corridoio-dx1" src="img/N_PT_dx_1.jpg">
+		<img id="img-corridoio-dx2" src="img/N_PT_dx_2.jpg">
+        <img id="img-lab-chimica1" src="img/N_lab_chimica_1.jpg">
+        <img id="img-lab-chimica2" src="img/N_lab_chimica_2.jpg">
+        <img id="img-lab-icdl" src="img/N_lab_icdl.jpg">
+		<img id="img-corridoio-sx1" src="img/N_PT_sx_1.jpg">
+		<img id="img-corridoio-sx2" src="img/N_PT_sx_2.jpg">
+		<img id="img-lab-fisica" src="img/N_lab_fisica.jpg">
+		<img id="img-lab-robotica" src="img/N_lab_robotica.jpg">
       </a-assets>
 
-      <!-- Componente di navigazione -->
+      <!-- Componente di navigazione AUTOMATICO -->
+     <!-- Componente di navigazione AUTOMATICO -->
       <script>
-        AFRAME.registerComponent('navigatore', {
-          schema: { 
+        // Registriamo un componente per gli hotspot che memorizza i suoi dati di navigazione
+        AFRAME.registerComponent('hotspot-item', {
+          schema: {
             stanza: { type: 'string' },
-            mostra: { type: 'string' },
-            nascondi: { type: 'string' }
-          },
-          init: function () {
-            const data = this.data;
-            const skyEl = document.querySelector('#sfondo-principale');
-            
-            this.el.addEventListener('click', () => {
-              console.log("Cambio stanza verso: " + data.stanza);
+            rotazione: { type: 'string', default: '0 0 0' },
+            mostra: { type: 'string' }
+          }
+        });
 
+        AFRAME.registerComponent('navigatore', {
+          init: function () {
+            const el = this.el;
+            
+            el.addEventListener('click', () => {
+              // Recupera i dati dal componente hotspot-item associato allo stesso cerchio
+              const data = el.components['hotspot-item'] ? el.components['hotspot-item'].data : null;
+              if (!data) return;
+
+              const skyEl = document.querySelector('#sfondo-principale');
+              
+              console.log("Cambio stanza verso: " + data.stanza);
+              
               // 1. Cambia l'immagine di sfondo
               skyEl.setAttribute('src', '#' + data.stanza);
-
-              // 2. Nasconde gli hotspot indicati
-              if (data.nascondi) {
-                data.nascondi.split(',').forEach(id => {
-                  const el = document.querySelector('#' + id.trim());
-                  if (el) el.setAttribute('visible', 'false');
-                });
+              
+              // 2. Applica la rotazione se specificata
+              if (data.rotazione && data.rotazione !== '0 0 0') {
+                skyEl.setAttribute('rotation', data.rotazione);
               }
 
-              // 3. Mostra gli hotspot indicati
-              if (data.mostra) {
-                data.mostra.split(',').forEach(id => {
-                  const el = document.querySelector('#' + id.trim());
-                  if (el) el.setAttribute('visible', 'true');
+              // 3. SPEGNIMENTO TOTALE: Spegne TUTTI i gruppi, nasconde i cerchi E rimuove l'attributo 'navigatore' da TUTTI i cerchi della scena
+              document.querySelectorAll('a-entity[id^="gruppo-"]').forEach(group => {
+                group.setAttribute('visible', 'false');
+                group.querySelectorAll('a-circle').forEach(circle => {
+                  circle.setAttribute('visible', 'false');
+                  circle.removeAttribute('navigatore'); // BLINDATURA: Diventano invisibili al raycaster del mouse!
                 });
+              });
+
+              // 4. ACCENSIONE SELETTIVA: Accende SOLO il gruppo richiesto e riattiva il navigatore sui suoi cerchi
+              if (data.mostra) {
+                const targetEl = document.querySelector('#' + data.mostra.trim());
+                if (targetEl) {
+                  targetEl.setAttribute('visible', 'true');
+                  
+                  // Riattiva visibilità e attributo 'navigatore' SOLO per i cerchi del gruppo attivo
+                  targetEl.querySelectorAll('a-circle').forEach(circle => {
+                    circle.setAttribute('visible', 'true');
+                    circle.setAttribute('navigatore', ''); // Riabilita il raycaster solo qui!
+                  });
+                }
               }
             });
           }
         });
       </script>
 
-      <!-- Sfondo sferico iniziale -->
-      <a-sky id="sfondo-principale" src="#img-entrata" rotation="0 -90 0"></a-sky>
+      <a-sky id="sfondo-principale" src="img/N_ingresso.jpg" rotation="0 170 0"></a-sky>
 
-      <!-- Telecamera e cursore puntato sugli elementi con navigatore -->
-      <a-camera>
-        <a-cursor 
-          color="#FF0000" 
-          fuse="false"
-          raycaster="objects: [navigatore]">
-        </a-cursor>
+      <a-camera look-controls="reverseMouseDrag: true">
+        <a-cursor color="#FF0000" fuse="false" cursor="rayOrigin: mouse" opacity="0" raycaster="objects: [navigatore]"></a-cursor>
       </a-camera>
 
-      <!-- HOTSPOT DALL'ENTRATA -->
-      <!-- 1. Laboratorio di Chimica (a destra) -->
-      <a-circle id="hotspot-lab" position="4 1.5 -3" radius="0.5" color="#EF2D5E" opacity="0.8"
-                navigatore="stanza: img-lab; nascondi: hotspot-lab, hotspot-centrale; mostra: hotspot-entrata"
-                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
-        <a-text value="Lab Chimica" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
-      </a-circle>
+<!--L'attributo position serve a posizionare l'hotspot (pallino)
+attorno alla telecamera, che si trova idealmente al centro delle coordinate 0 1.5 0
+x -- negativi spostano l'oggetto verso la sinistra dello schermo
+     positivi spostano l'oggetto verso la destra dello schermo
+y--  su/giù 1.5 posiziona l'hotspot più o meno all'altezza degli occhi
+     2 alza il pallino
+	 1 abbassa il pallino verso il pavimento
+z--  Regola la distanza in avanti o all'indietro rispetto alla visuale iniziale
+     negativi mettono l'oggetto davanti
+	 positivi mettono l'oggetto dietro
 
-      <!-- 2. Piano Terra Centrale (a sinistra) -->
-      <a-circle id="hotspot-centrale" position="-4 1.5 -3" radius="0.5" color="#2D88EF" opacity="0.8"
-                navigatore="stanza: img-centrale; nascondi: hotspot-lab, hotspot-centrale; mostra: hotspot-entrata"
-                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
-        <a-text value="Piano Terra Centrale" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
-      </a-circle>
+L'attributo rotation serve a inclinare, girare o orientare il pallino
+rotation="0 180 0"	significa ruota l'oggetto di 180 gradi in orizzontale per farlo guardare dalla parte opposta
 
-      <!-- HOTSPOT PER TORNARE ALL'ENTRATA (inizialmente nascosto) -->
-      <a-circle id="hotspot-entrata" position="0 1.5 -3" radius="0.5" color="#2ECC71" opacity="0.8" visible="false"
-                navigatore="stanza: img-entrata; nascondi: hotspot-entrata; mostra: hotspot-lab, hotspot-centrale"
-                animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
-        <a-text value="Torna all'Entrata" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
-      </a-circle>
+La rotazione scritta dentro l'attributo navigatore ruota l'intera immagine a 360 gradi dello sfondo 
+(a-sky) nel momento esatto in cui si clicca sul pallino e si cambia stanza
+
+Ogni gruppo ha visibilità FALSE, quando entro in quel gruppo rendo visibile il singolo gruppo
+altrimenti restano attivi hotspot già visitati
+-->
+
+<!-- ================================================= -->
+      <!-- GRUPPO 1: PIANO TERRA INGRESSO PRINCIPALE -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-ingresso" visible="true">
+        <!-- Vai a Ingresso 1 -->
+        <a-circle id="hotspot-ing-to-ing1" position="-1 1.5 -3" radius="0.5" color="#3498DB" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso1; rotazione: 0 220 0; mostra: gruppo-ing1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Vai avanti" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai a Corridoio Dx -->
+        <a-circle id="hotspot-ing-to-corridoio-1" position="4 1.5 -3" radius="0.5" color="#EF2D5E" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-dx1; rotazione: 0 200 0; mostra: gruppo-corridoio-1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 2: PIANO TERRA INGRESSO 1 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-ing1" visible="false">
+        <!-- Ritorno all'Ingresso principale -->
+        <a-circle id="hotspot-ing1-to-ing" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso; rotazione: 0 170 0; mostra: gruppo-ingresso"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Ingresso" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai avanti a Ingresso 2 -->
+        <a-circle id="hotspot-ing1-to-ing2" position="0 1.5 -3" radius="0.5" color="#9B59B6" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso2; rotazione: 0 180 0; mostra: gruppo-ing2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Vai avanti" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 2B: PIANO TERRA INGRESSO 2 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-ing2" visible="false">
+        <!-- Ritorno a Ingresso 1 (alle spalle) -->
+        <a-circle id="hotspot-ing2-to-ing1" position="1 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso1; rotazione: 0 220 0; mostra: gruppo-ing1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna indietro" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai avanti a Ingresso 3 -->
+        <a-circle id="hotspot-ing2-to-ing3" position="0 1.5 -3" radius="0.5" color="#9B59B6" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso3; rotazione: 0 180 0; mostra: gruppo-ing3"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Vai avanti" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 2C: PIANO TERRA INGRESSO 3 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-ing3" visible="false">
+        <!-- Ritorno a Ingresso 2 (alle spalle) -->
+        <a-circle id="hotspot-ing3-to-ing2" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso2; rotazione: 0 180 0; mostra: gruppo-ing2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna indietro" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai a destra verso Corridoio SX 1 -->
+        <a-circle id="hotspot-ing3-to-corridoiosx1" position="2.5 1.5 -3" radius="0.5" color="#E67E22" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-sx1; rotazione: 0 300 0; mostra: gruppo-corridoio-sx1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+	  <!-- ================================================= -->
+      <!-- GRUPPO 3: CORRIDOIO DX 1 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-corridoio-1" visible="false">
+        <!-- Torna all'Ingresso -->
+        <a-circle id="hotspot-corridoio-to-ing" position="2 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso; rotazione: 0 170 0; mostra: gruppo-ingresso"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Ingresso" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai a corridoio dx 2 -->
+        <a-circle id="hotspot-corridoio-to-corridoio2" position="-3.5 1.5 -6.5" radius="0.5" color="#9B59B6" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-dx2; rotazione: 0 180 0; mostra: gruppo-corridoio-2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Vai avanti" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>	  
+      </a-entity>
+	  
+
+      <!-- ================================================= -->
+      <!-- GRUPPO CORRIDOIO SX 1 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-corridoio-sx1" visible="false">
+        <!-- Torna a Ingresso 3 (alle spalle) -->
+        <a-circle id="hotspot-csx1-to-ing3" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-ingresso3; rotazione: 0 180 0; mostra: gruppo-ing3"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna indietro" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai avanti a Corridoio SX 2 -->
+        <a-circle id="hotspot-csx1-to-csx2" position="1.5 1.5 -3" radius="0.5" color="#9B59B6" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-sx2; rotazione: 0 180 0; mostra: gruppo-corridoio-sx2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Vai avanti" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO CORRIDOIO SX 2 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-corridoio-sx2" visible="false">
+        <!-- Torna a Corridoio SX 1 (alle spalle) -->
+        <a-circle id="hotspot-csx2-to-csx1" position="1 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-sx1; rotazione: 0 300 0; mostra: gruppo-corridoio-sx1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna indietro" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Ingresso Lab Fisica a DESTRA -->
+        <a-circle id="hotspot-csx2-to-fisica" position="1 1.5 -3" radius="0.5" color="#3498DB" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-fisica; rotazione: 0 180 0; mostra: gruppo-fisica"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Lab Fisica" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Ingresso Lab Robotica a SINISTRA -->
+        <a-circle id="hotspot-csx2-to-robotica" position="-1 1.5 -3" radius="0.5" color="#E67E22" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-robotica; rotazione: 0 180 0; mostra: gruppo-robotica"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Lab Robotica" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO LAB FISICA -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-fisica" visible="false">
+        <!-- Uscita per tornare su Corridoio SX 2 (alle spalle) -->
+        <a-circle id="hotspot-fisica-to-csx2" position="-5 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-sx2; rotazione: 0 180 0; mostra: gruppo-corridoio-sx2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna al Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO LAB ROBOTICA -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-robotica" visible="false">
+        <!-- Uscita per tornare su Corridoio SX 2 (alle spalle) -->
+        <a-circle id="hotspot-robotica-to-csx2" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-sx2; rotazione: 0 180 0; mostra: gruppo-corridoio-sx2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna al Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+	  
+      
+      <!-- ================================================= -->
+      <!-- GRUPPO 4: CORRIDOIO DX 2 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-corridoio-2" visible="false">
+        <!-- Torna all'Ingresso -->
+        <a-circle id="hotspot-corridoio2-to-corridoio1" position="2 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-dx1; rotazione: 0 200 0; mostra: gruppo-corridoio-1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna indietro" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <!-- Vai a Lab ICDL -->
+        <a-circle id="hotspot-corridoio-to-icdl" position="2 1.5 -6.5" radius="0.5" color="#9B59B6" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-icdl; rotazione: 0 180 0; mostra: gruppo-icdl"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Lab ICDL" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>	  
+        
+        <!-- Vai a Lab Chimica 1 -->
+        <a-circle id="hotspot-corridoio-to-chimica1" position="-6 1.5 -6.5" radius="0.5" color="#E67E22" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-chimica1; rotazione: 0 180 0; mostra: gruppo-chimica1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Lab Chimica 1" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 5: LAB ICDL -->
+      <!-- ================================================= -->
+	  <a-entity id="gruppo-icdl" visible="false">
+        <a-circle id="hotspot-icdl-to-corridoio2" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-dx2; rotazione: 0 180 0; mostra: gruppo-corridoio-2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna al Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 6: LAB CHIMICA 1 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-chimica1" visible="false">
+        <a-circle id="hotspot-chimica1-to-corridoio2" position="0 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-corridoio-dx2; rotazione: 0 180 0; mostra: gruppo-corridoio-2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna al Corridoio" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+
+        <a-circle id="hotspot-chimica1-to-chimica2" position="0 1.5 -3" radius="0.5" color="#F1C40F" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-chimica2; rotazione: 0 180 0; mostra: gruppo-chimica2"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Lab Chimica 2" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
+
+
+      <!-- ================================================= -->
+      <!-- GRUPPO 7: LAB CHIMICA 2 -->
+      <!-- ================================================= -->
+      <a-entity id="gruppo-chimica2" visible="false">
+        <a-circle id="hotspot-chimica2-to-chimica1" position="-3 1.5 3" rotation="0 180 0" radius="0.5" color="#2ECC71" opacity="0.8"
+                  navigatore
+				  hotspot-item="stanza: img-lab-chimica1; rotazione: 0 180 0; mostra: gruppo-chimica1"
+                  animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true">
+          <a-text value="Torna a Lab Chimica 1" position="0 0.7 0" align="center" scale="1.5 1.5 1.5" color="#FFF"></a-text>
+        </a-circle>
+      </a-entity>
 
     </a-scene>
   </body>
