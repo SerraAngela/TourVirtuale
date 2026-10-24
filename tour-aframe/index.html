@@ -88,9 +88,17 @@
       <a-sky id="sfondo-principale" src="img/N_ingresso.jpg" rotation="0 170 0"></a-sky>
 
       <a-camera look-controls="reverseMouseDrag: true">
-        <a-cursor color="#FF0000" fuse="false" cursor="rayOrigin: mouse" opacity="0" raycaster="objects: [navigatore]"></a-cursor>
+        <a-cursor  color="#FF0000" fuse="false" 
+					cursor="rayOrigin: mouse" 
+				    opacity="0" 
+				    raycaster="objects: [navigatore]">
+		</a-cursor>
       </a-camera>
 
+<!-- CONTROLLER VR (Per Meta Quest / Visori WebXR) -->
+      <!-- Genera automaticamente il puntatore laser dalle mani quando si entra in VR -->
+      <a-entity laser-controls="hand: right" raycaster="objects: [navigatore]; far: 20"></a-entity>
+      <a-entity laser-controls="hand: left" raycaster="objects: [navigatore]; far: 20"></a-entity>
 <!--L'attributo position serve a posizionare l'hotspot (pallino)
 attorno alla telecamera, che si trova idealmente al centro delle coordinate 0 1.5 0
 x -- negativi spostano l'oggetto verso la sinistra dello schermo
